@@ -22,7 +22,9 @@ function varargout = roiMatchPub(varargin)
 
 % Edit the above text to modify the response to help roiMatchPub
 
-% Last Modified by GUIDE v2.5 11-Apr-2019 17:33:41
+% Last Modified by GUIDE v2.5 28-Sep-2021 12:42:37
+% Contains edits made by SAP (most recent edit on 2021_10_04)
+
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -67,7 +69,13 @@ roiMatchGlobal.data.rois = {};
 roiMatchGlobal.data.mapping = [];
 roiMatchGlobal.data.comparisonMatrix = [];
 roiMatchGlobal.data.allRois = [];
+roiMatchGlobal.data.Falliscelleqone = []; %SAP
+roiMatchGlobal.data.countexpts = 0; %SAP
+roiMatchGlobal.data.allSessionMappingPyIndex = []; %SAP
+roiMatchGlobal.data.allAutoDetectedCellsPyIndex = []; %SAP
+roiMatchGlobal.data.allAutoDetectedCellsorig = []; %SAP
 updateGUI(handles)
+
 
 function updateGUI(handles)
 global roiMatchGlobal;
@@ -94,18 +102,26 @@ function btnNew_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global roiMatchGlobal;
+disp('New Match File'); %SAP
 % clear any current data
 roiMatchGlobal.data = [];
 roiMatchGlobal.data.rois = {};
 roiMatchGlobal.data.mapping = [];
 roiMatchGlobal.data.comparisonMatrix = [];
 roiMatchGlobal.data.allRois = [];
+roiMatchGlobal.data.Falliscelleqone = []; %SAP
+roiMatchGlobal.data.countexpts = 0; %SAP
+roiMatchGlobal.data.allSessionMappingPyIndex = []; %SAP
+roiMatchGlobal.data.allAutoDetectedCellsPyIndex = []; %SAP
+roiMatchGlobal.data.allAutoDetectedCellsorig = []; %SAP
 updateGUI(handles)
+% --- end of New Match File.
 
 
 % --- Executes on button press in btnAddFromDataBrowse.
 function btnAddFromDataBrowse_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Add Experiment'); %SAP
 [FileName,PathName] = uigetfile('*Fall*');
 Fall = load(fullfile(PathName,FileName));
 cd(PathName);
@@ -114,6 +130,12 @@ cellValid = Fall.iscell(:,1);
 % make masks of cells (for longitidinal tracking etc)
 cellIDMap = zeros(size(Fall.ops.meanImg));
 validCellList = find(cellValid(:,1)==1);
+
+%%%%%%%SAP start%%%%%%%
+roiMatchGlobal.data.countexpts = roiMatchGlobal.data.countexpts + 1;
+roiMatchGlobal.data.Falliscelleqone{roiMatchGlobal.data.countexpts} = validCellList;
+%%%%%%%SAP end%%%%%%%
+
 for iCell = 1:length(validCellList)
     cellID = validCellList(iCell);
     % roiPix = sub2ind(size(cellMask),Fall.stat{cellID}.ypix+int64(Fall.ops.yrange(1))-1,Fall.stat{cellID}.xpix+int64(Fall.ops.xrange(1))-1);
@@ -179,6 +201,8 @@ else
     axis square;xticks([]);yticks([]);
 end
 updateGUI(handles)
+% --- end of Add Experiment.
+
 
 % --- Executes on selection change in listROIs.
 function listROIs_Callback(hObject, eventdata, handles)
@@ -229,29 +253,36 @@ end
 % --- Executes on button press in btnRemove.
 function btnRemove_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Remove experiment'); %SAP
 % load currently selected roi
 currentAnimalID = handles.listROIs.Value;
 expToKeep = setdiff(1:length(roiMatchGlobal.data.allRois),currentAnimalID);
 roiMatchGlobal.data.rois = roiMatchGlobal.data.rois(expToKeep);
 roiMatchGlobal.data.allRois = roiMatchGlobal.data.allRois(expToKeep);
 roiMatchGlobal.data.comparisonMatrix = roiMatchGlobal.data.comparisonMatrix(expToKeep,expToKeep);
+roiMatchGlobal.data.countexpts = roiMatchGlobal.data.countexpts - 1; %SAP
 % update lists
 updateGUI(handles);
 handles.listROIs.Value = 1;
 handles.listROIs2.Value = 1;
+% --- end of Remove Experiment.
 
 
 % --- Executes on button press in btnSave.
 function btnSave_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Save Match File'); %SAP
 [FileName,PathName] = uiputfile('*.mat');
 cd(PathName);
 roiMatchData = roiMatchGlobal.data;
 save(fullfile(PathName,FileName),'roiMatchData');
+% --- end of Save match file.
+
 
 % --- Executes on button press in btnLoad.
 function btnLoad_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Load Match File'); %SAP
 [FileName,PathName] = uigetfile('*.mat');
 cd(PathName);
 load(fullfile(PathName,FileName));
@@ -259,10 +290,13 @@ roiMatchGlobal.data = roiMatchData;
 updateGUI(handles);
 handles.listROIs.Value = 1;
 handles.listROIs2.Value = 1;
+% --- end of Load match file.
+
 
 % --- Executes on button press in btnCompare.
 function btnCompare_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Compare pair'); %SAP
 exp1 = handles.listROIs.Value;
 exp2 = handles.listROIs2.Value;
 figure;
@@ -283,10 +317,15 @@ subplot(2,2,4);
 imagesc(imfuse(roiMatchGlobal.data.rois{exp1}.roiMapRegistered>0,roiMatchGlobal.data.rois{exp2}.roiMapRegistered>0));
 axis equal;xticks([]);yticks([]);
 title('White = overlapping rois')
+% --- end of Compare pair
+
 
 % --- Executes on button press in btnAuto.
 function btnAuto_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Auto Detect'); %SAP
+f = waitbar(0,'Running Auto Detect'); %SAP
+
 allPerms = nchoosek(1:length(roiMatchGlobal.data.rois),2);
 allOverlaps = [];
 overlapThreshold = str2num(handles.editOverlapThreshold.String);
@@ -324,6 +363,8 @@ for iExp1 = 1:length(roiMatchGlobal.data.rois)
         
     end
 end
+waitbar(0.5,f,'Auto Detect in progress...'); %SAP
+
 % check 'reuse' of cells
 hist(allOverlaps);
 % cycle through mappings committing each cell to a longitudinal group
@@ -382,7 +423,25 @@ xlim([1 210]);
 axis equal;
 axis off
 
+%%%%%%%%%SAP start%%%%%%%%%%%%%
+numfiles = size(roiMatchGlobal.data.allSessionMapping,2);
+numcells = size(roiMatchGlobal.data.allSessionMapping,1);
+matchedsuite2pROIs = zeros(numcells,numfiles);
+for i = 1:numfiles
+    % create array of only "good" suite2p ROIs
+    suite2pROIs = roiMatchGlobal.data.Falliscelleqone{1,i};
+    matchedsuite2pROIs(:,i) = suite2pROIs(roiMatchGlobal.data.allSessionMapping(:,i)) - 1;
+end
+roiMatchGlobal.data.allAutoDetectedCellsPyIndex = matchedsuite2pROIs;
+roiMatchGlobal.data.allAutoDetectedCellsorig = roiMatchGlobal.data.allSessionMapping;
+%%%%%%%%%SAP end%%%%%%%%%%%%%
+
 toc;
+waitbar(1,f,'Auto Detect Done!'); %SAP
+pause(1);
+close(f)
+% --- end of Auto Detect.
+
 
 function editOverlapThreshold_Callback(hObject, eventdata, handles)
 % hObject    handle to editOverlapThreshold (see GCBO)
@@ -410,6 +469,7 @@ end
 function btnValidate_Callback(hObject, eventdata, handles)
 % display all rois longitudinally as images
 global roiMatchGlobal;
+disp('Validate'); %SAP
 surroundPix = str2num(handles.editSurroundPix.String);
 compositeROIs = [];
 resizedROISize = [100 100];
@@ -513,11 +573,28 @@ for iRoi = 1:size(roiMatchGlobal.data.allSessionMapping,1)
 end
 if f.isvalid;f.delete;end;
 roiMatchGlobal.data.allSessionMapping=roiMatchGlobal.data.allSessionMapping(logical(roisToKeep),:);
+
+%%%%%%%%%SAP start%%%%%%%%%%%%%
+numfiles = size(roiMatchGlobal.data.allSessionMapping,2);
+numcells = size(roiMatchGlobal.data.allSessionMapping,1);
+matchedsuite2pROIs = zeros(numcells,numfiles);
+for i = 1:numfiles
+    % create array of only "good" suite2p ROIs
+    suite2pROIs = roiMatchGlobal.data.Falliscelleqone{1,i};
+    matchedsuite2pROIs(:,i) = suite2pROIs(roiMatchGlobal.data.allSessionMapping(:,i)) - 1
+end
+roiMatchGlobal.data.allSessionMappingPyIndex = matchedsuite2pROIs;
+%%%%%%%%%SAP end%%%%%%%%%%%%%
+
 disp(['Total longitudinal ROIs = ',num2str(size(roiMatchGlobal.data.allSessionMapping,1))]);
+% --- end of Validate.
+
 
 % --- Executes on button press in btnShowAll.
 function btnShowAll_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Show All'); %SAP
+f = waitbar(0.5,'Running Show All'); %SAP
 compositeROIs = [];
 for iRoi = 1:size(roiMatchGlobal.data.allSessionMapping,1)
     cellIDs = roiMatchGlobal.data.allSessionMapping(iRoi,:);
@@ -544,7 +621,10 @@ xlim([1 210]);
 axis equal;
 axis off
 title(['Number of rois = ',num2str(size(roiMatchGlobal.data.allSessionMapping,1)),' - rows are experiments - pan with hand tool']);
-
+waitbar(1,f,'Show All Done!'); %SAP
+pause(1);
+close(f)
+% --- end of Show all.
 
 
 function editSurroundPix_Callback(hObject, eventdata, handles)
@@ -571,6 +651,8 @@ end
 % --- Executes on button press in btnShowValid.
 function btnShowValid_Callback(hObject, eventdata, handles)
 global roiMatchGlobal;
+disp('Show Valid'); %SAP
+f = waitbar(0.5,'Running Show Valid'); %SAP
 compositeROIs = [];
 for iRoi = 1:size(roiMatchGlobal.data.allSessionMapping,1)
     
@@ -598,6 +680,11 @@ xlim([1 210]);
 axis equal;
 axis off
 title(['Number of rois = ',num2str(size(roiMatchGlobal.data.allSessionMapping,1))]);
+waitbar(1,f,'Show Valid Done!'); %SAP
+pause(1);
+close(f)
+% --- end of Show Valid.
+
 
 function [I2] = imadjusta(I)
 I2 = I - min(I(:));
