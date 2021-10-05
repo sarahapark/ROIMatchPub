@@ -1,13 +1,3 @@
-Note to self before starting (SAP): 
-Overlap threshold: Set to 0.5 or 0.55 and accept all. 
-Or, manually clean.
-Accept pair if I can see the cell outline in at least one of the files.
-Accept pair when I am unsure of the cell outline but the ROI shape is the same.
-Exclude pair when ROI shape or size is very clearly different. 
-Exclude pair when ROI includes multiple cells and the cells are different. 
-Accept the pair when ROI includes multiple cells and the cells are the same.
-ROI surround pixels: Set to 40 or 50 and validate pairs by using "Validate" images and "Auto detect" paired cell image results.
-
 1) Start a new match file with the 'New match file' button.
 2) Click "Add experiment" to load the Fall.mat file output by suite2p.
 This will be the experiment that all others will be aligned to.
